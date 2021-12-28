@@ -42,7 +42,7 @@ public class PlayerMovement : MonoBehaviour
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
 
         //Set speed of movement based on if the sprint key is being pressed
-        if( (Input.GetKey(KeyCode.LeftShift)) && (moveZ > 0) && (isGrounded) )
+        if( (Input.GetButton("Sprint")) && (moveZ > 0) && (isGrounded) )
         {
             actualSpeed = sprintingSpeed;
         } else
