@@ -7,9 +7,14 @@ public class PlayerMovement : MonoBehaviour
 
     public CharacterController controller;
 
-    public float actualSpeed = 2f;
-    public float walkingSpeed = 2f;
-    public float sprintingSpeed = 12f;
+    public float actualSpeed = 4f;
+    public float walkingSpeed = 4f;
+    public float sprintingSpeed = 8f;
+    public float crouchingSpeed = 2f;
+
+    public float normalHeight = 3.8f;
+    public float crouchingHeight = 1.9f;
+    public float cameraHeight = 1.58f;
 
     public float gravity = -9.81f;
     public float jumpHeight = 3;
@@ -17,9 +22,15 @@ public class PlayerMovement : MonoBehaviour
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
+    bool isGrounded;
+
+
+    bool isCeilingRoom;
+    bool isCrouching;
+    bool isSprinting;
 
     Vector3 velocity;
-    bool isGrounded;
+
 
     // Update is called once per frame
     void Update()
@@ -27,6 +38,13 @@ public class PlayerMovement : MonoBehaviour
 
         //First check if player is grounded
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+
+        //Check to see if there is room above the player
+        isCeilingRoom = !Physics.Raycast(Camera.main.transform.position, Vector3.up, 1f);
+
+        //Check to see if player is Sprinting/Crouching
+        isCrouching = Input.GetButton("Crouch");
+        isSprinting = Input.GetButton("Sprint");
 
         //If player is grounded then set their velocity to -2 (so it's properly reset)
         if( (isGrounded) && (velocity.y < 0f) )
@@ -41,13 +59,35 @@ public class PlayerMovement : MonoBehaviour
         //Creates movement based on where we want to go and where we are facing
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
 
-        //Set speed of movement based on if the sprint key is being pressed
-        if( (Input.GetButton("Sprint")) && (moveZ > 0) && (isGrounded) )
+        //Set speed of movement based on if the sprint/crouch key is being pressed
+        if( (isSprinting) && (moveZ > 0) && (isGrounded) )
         {
             actualSpeed = sprintingSpeed;
-        } else
+        } else if( (isCrouching) && (isGrounded) )
         {
+            actualSpeed = crouchingSpeed;
+        } else { 
             actualSpeed = walkingSpeed;
+        }
+
+        //Moves camera if player is crouching;
+        if ( (isCrouching) && (isGrounded) )
+        {
+            controller.height = Mathf.Lerp(controller.height, crouchingHeight, 5 * Time.deltaTime);
+            controller.center = Vector3.down * (normalHeight - controller.height) / 2.0f;
+            Camera.main.transform.localPosition = Vector3.down * (normalHeight - controller.height - cameraHeight);
+            
+            
+        } else if ( !(isCrouching) && (isCeilingRoom) ) 
+        {
+            controller.height = Mathf.Lerp(controller.height, normalHeight, 5 * Time.deltaTime);
+            controller.center = Vector3.down * (normalHeight - controller.height) / 2.0f;
+            Camera.main.transform.localPosition = Vector3.down * (normalHeight - controller.height - cameraHeight);
+        } else if ( !(isCrouching) && !(isCeilingRoom) ) 
+        {
+            controller.height = Mathf.Lerp(controller.height, crouchingHeight, 5 * Time.deltaTime);
+            controller.center = Vector3.down * (normalHeight - controller.height) / 2.0f;
+            Camera.main.transform.localPosition = Vector3.down * (normalHeight - controller.height - cameraHeight);
         }
 
         //Moves the player
