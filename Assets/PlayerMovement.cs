@@ -22,15 +22,24 @@ public class PlayerMovement : MonoBehaviour
     public Transform groundCheck;
     public float groundDistance = 0.4f;
     public LayerMask groundMask;
-    bool isGrounded;
+    public bool isGrounded;
 
 
-    bool isCeilingRoom;
-    bool isCrouching;
-    bool isSprinting;
+    public bool isCeilingRoom;
+    public bool isCrouchingKey;
+    public bool isCrouching;
+    public bool isSprintingKey;
+    public static bool isSprinting;
+    public bool isSprintingCheck;
 
     Vector3 velocity;
 
+    // Start is called before the first frame update
+    void Start()
+    {
+        GameObject Player = GameObject.Find("First Person Player");
+        APController apController = Player.GetComponent<APController>();
+    }
 
     // Update is called once per frame
     void Update()
@@ -43,8 +52,8 @@ public class PlayerMovement : MonoBehaviour
         isCeilingRoom = !Physics.Raycast(Camera.main.transform.position, Vector3.up, 1f);
 
         //Check to see if player is Sprinting/Crouching
-        isCrouching = Input.GetButton("Crouch");
-        isSprinting = Input.GetButton("Sprint");
+        isCrouchingKey = Input.GetButton("Crouch");
+        isSprintingKey = Input.GetButton("Sprint");
 
         //If player is grounded then set their velocity to -2 (so it's properly reset)
         if( (isGrounded) && (velocity.y < 0f) )
@@ -60,14 +69,20 @@ public class PlayerMovement : MonoBehaviour
         Vector3 move = transform.right * moveX + transform.forward * moveZ;
 
         //Set speed of movement based on if the sprint/crouch key is being pressed
-        if( (isSprinting) && (moveZ > 0) && (isGrounded) )
+        if( (isSprintingKey) && (moveZ > 0) && (isGrounded) && (APController.CurrentAP > 0f) && !(APController.APWait) )
         {
             actualSpeed = sprintingSpeed;
-        } else if( (isCrouching) && (isGrounded) )
+            isSprinting = true;
+            isSprintingCheck = true;
+        } else if( (isCrouchingKey) && (isGrounded) )
         {
             actualSpeed = crouchingSpeed;
+            isCrouching = true;
         } else { 
             actualSpeed = walkingSpeed;
+            isSprinting = false;
+            isSprintingCheck = false;
+            isCrouching = false;
         }
 
         //Moves camera if player is crouching;
