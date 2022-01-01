@@ -7,12 +7,15 @@ public class PlayerMovement : MonoBehaviour
 
     public CharacterController controller;
 
+    public bool canMove = true;
+
     public float actualSpeed = 4f;
     public float walkingSpeed = 4f;
     public float sprintingSpeed = 8f;
     public float crouchingSpeed = 2f;
 
-    public float normalHeight = 3.8f;
+    public float actualHeight = 3.8f;
+    public float walkingHeight = 3.8f;
     public float crouchingHeight = 1.9f;
     public float cameraHeight = 1.58f;
 
@@ -32,92 +35,147 @@ public class PlayerMovement : MonoBehaviour
     public static bool isSprinting;
     public bool isSprintingCheck;
 
+    public float walkingBobAmount = 0.1f;
+    public float walkingBobSpeed = 12f;
+    public float sprintingBobAmount = 0.4f;
+    public float sprintingBobSpeed = 16f;
+    public float crouchingBobAmount = 0.05f;
+    public float crouchingBobSpeed = 8f;
+
+    public float actualBobAmount;
+    public float actualBobSpeed;
+    public float bobChange;
+
+    public float bobTimer;
+
+    public float cameraMove;
+
+
+
     Vector3 velocity;
 
     // Start is called before the first frame update
     void Start()
     {
+        //Gets Player object for Action Points
         GameObject Player = GameObject.Find("First Person Player");
         APController apController = Player.GetComponent<APController>();
+
+        //Sets controller
+        controller = Player.GetComponent<CharacterController>();
+
+        //Sets ground check and mask
+        groundCheck = Player.transform.Find("GroundCheck");
+        groundMask = LayerMask.GetMask("Ground");
+
     }
 
     // Update is called once per frame
     void Update()
     {
 
-        //First check if player is grounded
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+        //First check if player can move
+        if ( (canMove) ) {
 
-        //Check to see if there is room above the player
-        isCeilingRoom = !Physics.Raycast(Camera.main.transform.position, Vector3.up, 1f);
+            //Check if player is grounded
+            isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
-        //Check to see if player is Sprinting/Crouching
-        isCrouchingKey = Input.GetButton("Crouch");
-        isSprintingKey = Input.GetButton("Sprint");
+            //Check to see if there is room above the player
+            isCeilingRoom = !Physics.Raycast(Camera.main.transform.position, Vector3.up, 1f);
 
-        //If player is grounded then set their velocity to -2 (so it's properly reset)
-        if( (isGrounded) && (velocity.y < 0f) )
-        {
-            velocity.y = -2f;
-        }
+            //Check to see if player is Sprinting/Crouching
+            isCrouchingKey = Input.GetButton("Crouch");
+            isSprintingKey = Input.GetButton("Sprint");
 
-        //Set the X and Z movements of the frame
-        float moveX = Input.GetAxis("Horizontal");
-        float moveZ = Input.GetAxis("Vertical");
+            //If player is grounded then set their velocity to -2 (so it's properly reset)
+            if( (isGrounded) && (velocity.y < 0f) )
+            {
+                velocity.y = -2f;
+            }
 
-        //Creates movement based on where we want to go and where we are facing
-        Vector3 move = transform.right * moveX + transform.forward * moveZ;
+            //Set the X and Z movements of the frame
+            float moveX = Input.GetAxis("Horizontal");
+            float moveZ = Input.GetAxis("Vertical");
 
-        //Set speed of movement based on if the sprint/crouch key is being pressed
-        if( (isSprintingKey) && (moveZ > 0) && (isGrounded) && (APController.CurrentAP > 0f) && !(APController.APWait) )
-        {
-            actualSpeed = sprintingSpeed;
-            isSprinting = true;
-            isSprintingCheck = true;
-        } else if( (isCrouchingKey) && (isGrounded) )
-        {
-            actualSpeed = crouchingSpeed;
-            isCrouching = true;
-        } else { 
-            actualSpeed = walkingSpeed;
-            isSprinting = false;
-            isSprintingCheck = false;
-            isCrouching = false;
-        }
+            //Creates movement based on where we want to go and where we are facing
+            Vector3 move = transform.right * moveX + transform.forward * moveZ;
 
-        //Moves camera if player is crouching;
-        if ( (isCrouching) && (isGrounded) )
-        {
-            controller.height = Mathf.Lerp(controller.height, crouchingHeight, 5 * Time.deltaTime);
-            controller.center = Vector3.down * (normalHeight - controller.height) / 2.0f;
-            Camera.main.transform.localPosition = Vector3.down * (normalHeight - controller.height - cameraHeight);
+            //Set speed of movement based on if the sprint/crouch key is being pressed
+            if( (isSprintingKey) && (moveZ > 0) && (isGrounded) && (APController.CurrentAP > 0f) && !(APController.APWait) )
+            {
+                actualSpeed = sprintingSpeed;
+                isSprinting = true;
+                isSprintingCheck = true;
+            } else if( (isCrouchingKey) && (isGrounded) )
+            {
+                actualSpeed = crouchingSpeed;
+                isCrouching = true;
+            } else { 
+                actualSpeed = walkingSpeed;
+                isSprinting = false;
+                isSprintingCheck = false;
+                isCrouching = false;
+            }
+
+            //Moves camera if player is crouching;
+            if ( ( (isCrouching) && (isGrounded) ) | ( !(isCrouching) && !(isCeilingRoom) ) )
+            {
+                actualHeight = crouchingHeight;
+
+            } else
+            {
+                actualHeight = walkingHeight;
+
+            }
+            controller.height = Mathf.Lerp(controller.height, actualHeight, 5 * Time.deltaTime);
+            controller.center = Vector3.down * (walkingHeight - controller.height) / 2.0f;
+
+            //Calculates Headbob if moving
+            if( (isGrounded) && ( (moveX != 0) | (moveZ != 0) ) )
+            {
+                
+                if ( (isSprinting) )
+                {
+                    actualBobAmount = sprintingBobAmount;
+                    actualBobSpeed = sprintingBobSpeed;
+
+                } else if ( (isCrouching) )
+                {
+                    actualBobAmount = crouchingBobAmount;
+                    actualBobSpeed = crouchingBobSpeed;
+                    
+                } else
+                {
+                    actualBobAmount = walkingBobAmount;
+                    actualBobSpeed = walkingBobSpeed;
+                    
+                }
+
+                //Constantly iterating timer so that it switches between +ve and -ve for up and down effect
+                bobTimer += Time.deltaTime * actualBobSpeed;
+                bobChange = Mathf.Sin(bobTimer) * actualBobAmount;
+            }  else {
+                bobChange = 0;
+            }
             
-            
-        } else if ( !(isCrouching) && (isCeilingRoom) ) 
-        {
-            controller.height = Mathf.Lerp(controller.height, normalHeight, 5 * Time.deltaTime);
-            controller.center = Vector3.down * (normalHeight - controller.height) / 2.0f;
-            Camera.main.transform.localPosition = Vector3.down * (normalHeight - controller.height - cameraHeight);
-        } else if ( !(isCrouching) && !(isCeilingRoom) ) 
-        {
-            controller.height = Mathf.Lerp(controller.height, crouchingHeight, 5 * Time.deltaTime);
-            controller.center = Vector3.down * (normalHeight - controller.height) / 2.0f;
-            Camera.main.transform.localPosition = Vector3.down * (normalHeight - controller.height - cameraHeight);
+            //Moves camera based on crouching and bobbing
+            Camera.main.transform.localPosition = Vector3.down * (walkingHeight - controller.height - cameraHeight - bobChange);
+
+            //Moves the player
+            controller.Move(move * actualSpeed * Time.deltaTime);
+
+            //If the Jump button is pressed the adds velocity
+            if( (Input.GetButtonDown("Jump")) && (isGrounded) )
+            {
+                velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            }
+
+            //Adds gravity to velocity
+            velocity.y += gravity * Time.deltaTime;
+
+            //Moves player based on velocity
+            controller.Move(velocity * Time.deltaTime);
+
         }
-
-        //Moves the player
-        controller.Move(move * actualSpeed * Time.deltaTime);
-
-        //If the Jump button is pressed the adds velocity
-        if( (Input.GetButtonDown("Jump")) && (isGrounded) )
-        {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-        }
-
-        //Adds gravity to velocity
-        velocity.y += gravity * Time.deltaTime;
-
-        //Moves player based on velocity
-        controller.Move(velocity * Time.deltaTime);
     }
 }
