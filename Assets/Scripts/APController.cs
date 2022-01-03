@@ -29,6 +29,8 @@ public class APController : MonoBehaviour
         GameObject Player = GameObject.Find("First Person Player");
         PlayerMovement playerMovement = Player.GetComponent<PlayerMovement>();
         
+        //Set Bar
+        APBar = GameObject.Find("HUD/APBar").GetComponent<Slider>();
 
         //Sets max AP of the bar to the BaseAP, will need to change when player stats are introduced
         APBar.maxValue = BaseAP;
