@@ -101,7 +101,7 @@ public class PlayerMovement : MonoBehaviour
             Vector3 move = transform.right * moveX + transform.forward * moveZ;
 
             //Set speed of movement based on if the sprint/crouch key is being pressed
-            if( (isSprintingKey) && (moveZ > 0) && (isGrounded) && (APController.CurrentAP > 0f) && !(APController.APWait) )
+            if( (isSprintingKey) && (moveZ > 0) && (isGrounded) && (APController.currentAP > 0f) && !(APController.APWait) )
             {
                 actualSpeed = sprintingSpeed;
                 isSprinting = true;

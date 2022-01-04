@@ -6,13 +6,16 @@ using UnityEngine.UI;
 public class APController : MonoBehaviour
 {
 
-    public bool UseAP = true;
+    public bool useAP = true;
 
     public float BaseAP = 100f;
-    public static float CurrentAP = 100f;
-    public float CurrentAPCheck = 100f;
-    public float SprintDrain = 100f;
-    public float APRegen = 100f;
+    public static float currentAP = 100f;
+    public float currentAPCheck = 100f;
+    public float SprintDrain = 1f;
+    public float baseAPRegen = 1f;
+    public float currentAPRegen;
+    public float currentAPDrain;
+    public float secondsAP = 0.06f;
 
     public bool APAction = false;
     public bool APWaitCheck = false;
@@ -34,59 +37,60 @@ public class APController : MonoBehaviour
 
         //Sets max AP of the bar to the BaseAP, will need to change when player stats are introduced
         APBar.maxValue = BaseAP;
+
+        if ( (useAP) )
+        {
+            InvokeRepeating("APDrain", 0f, 1f);
+            InvokeRepeating("APRegen", 0f, secondsAP);
+        }     
     }
 
     // Update is called once per frame
     void Update()
     {
 
-        if ( (UseAP) )
+        if ( (useAP) )
         {
 
             //Calls the waiting routine
             StartCoroutine(APWaiting());
 
-            //Used to check if the player is doing an AP action
+            //Set Regen value
+            currentAPRegen = baseAPRegen;
+
+            //used to check if the player is doing an AP action
             //Only sprinting atm but will be used to also check for VATS
             if ( PlayerMovement.isSprinting )
             {
                 APAction = true;
             } else {
                 APAction = false;
+                currentAPDrain = 0;
             }
 
-            //If the player is sprinting then reduce the current AP
+            //If the player is sprinting then increase AP drain
             if ( PlayerMovement.isSprinting )
             {
-                if ( (CurrentAP -= Mathf.RoundToInt(SprintDrain * Time.deltaTime)) > 0 ){
-                    CurrentAP -= Mathf.RoundToInt(SprintDrain * Time.deltaTime);
-                }
-                SprintCheck = true;
-            }
+                currentAPDrain = SprintDrain;
+            } 
 
             //Debug
             if( !PlayerMovement.isSprinting ){
                 SprintCheck = false;
             }
 
-            //If no AP action is being performed and the Current AP is less than Base AP
-            //then start the regen of AP
-            if ( !(APAction) && (CurrentAP < BaseAP) )
-            {
-                CurrentAP += Mathf.RoundToInt(APRegen * Time.deltaTime);
-            }
-
             //Sets AP bar value to current AP
-            APBar.value = CurrentAP;
+            APBar.value = currentAP;
 
             //Debug
-            CurrentAPCheck = CurrentAP;
+            currentAPCheck = currentAP;
         }
 
+        
         IEnumerator APWaiting()
         {
             //If AP is drained to zero, prevent AP actions and wait 2 seconds
-            if (CurrentAP == 0)
+            if (currentAP == 0)
             {
                 APWait = true;
                 APWaitCheck = true;
@@ -96,6 +100,19 @@ public class APController : MonoBehaviour
                 APWait = false;
                 APWaitCheck = false;
             }
+        }
+    }
+    
+    public void APDrain()
+    {
+        currentAP = currentAP - currentAPDrain;
+    }
+    
+    public void APRegen()
+    {
+        if ( !(APAction) && (currentAP < BaseAP) )
+        {
+            currentAP = currentAP + currentAPRegen;
         }
     }
 }
